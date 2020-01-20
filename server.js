@@ -1,15 +1,17 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const MOVIES = require('./movies.json')
 const CORS = require('cors')
 const app = express()
 
-app.use(morgan('dev'))
+const morganSetting = process.env.NODE_ENV === 'production' ? 'tiny' : 'common'
+ app.use(morgan(morganSetting))
 app.use(CORS());
 
 app.use(function handleAuth(req, res, next) {
 
-    const apiToken = '98fed4d8-2015-45b5-9ebc-26f47ea7922d';
+  const apiToken = process.env.API_TOKEN;
     const authToken = req.get('Authorization') 
 
     if (!authToken || authToken.split(' ')[1] !== apiToken) {
@@ -17,6 +19,7 @@ app.use(function handleAuth(req, res, next) {
       } 
     next();
     })
+
 
 
 function handleMovies(req, res) {
@@ -41,7 +44,18 @@ res.send(results)
 app.get('/movies' , handleMovies);
 
 
-const PORT = 8000
+
+app.use((error, req, res, next) => {
+  let response
+  if (process.env.NODE_ENV === 'production') {
+    response = { error: { message: 'server error' }}
+  } else {
+    response = { error }
+  }
+  res.status(500).json(response)
+})
+
+const PORT = process.env.PORT || 8000 
 
 app.listen(PORT, () => {
   console.log(`Server listening at http://localhost:${PORT}`)
